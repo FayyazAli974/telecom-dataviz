@@ -1,140 +1,100 @@
-import pandas as pd
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-import plotly.graph_objects as go
 from dash.dependencies import Input, Output
 
-# Constants
-estimations = ["lower", "midpoint", "higher"]
-years = [2015, 2020, 2040, 2060]
+import pandas as pd
 
-""" DATA LOADING """
-# Load and prepare data
-df = pd.read_excel("./Data/igr204-data.xlsx")
-print(df.shape)
-for estimation in estimations:
-    df[estimation + "-percent-2015"] = df[estimation + "-mpw-2015"] / df[estimation + "-total-pw-2015"]
-    for year in years[1:]:
-        df[estimation + "-percent-" + str(year)] = df[estimation + "-mpw-scenarioB-" + str(year)] / df[estimation + "-total-pw-" + str(year)]
-df['percent'] = df["midpoint-percent-2015"]
-
-
-
-""" LAYOUT """
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-app.layout = html.Div(children=[
-    html.H1(children='Investment in the fight against ocean pollution'),
-    html.Div(children='''In which countries should we invest to limit plastic pollution of the oceans?'''),
+df = pd.read_csv('https://plotly.github.io/datasets/country_indicators.csv')
 
+available_indicators = df['Indicator Name'].unique()
+
+app.layout = html.Div([
     html.Div([
-        dcc.Graph(
-            id='map-graph',
-        )],
-        style={'width': '45%', 'height': '400px', 'margin-top': '40px', 'display': 'inline-block'}
-    ),
-    html.Div([
-        dcc.Graph(
-            id='scatter-graph',
-            figure=go.Figure()
-        )],
-        style={'width': '45%', 'height': '400px', 'margin-top': '40px', 'margin-left': '5%', 'display': 'inline-block'}
-    ),
-    html.Div([
+
         html.Div([
-            dcc.Slider(
-                id='year-slider',
-                min=2015,
-                max=2060,
-                value=2015,
-                marks={str(year): str(year) for year in years},
-                step=None
-            )],
-            style={'width': '48%', 'display': 'inline-block'}
-        ),
-        html.Div([
+            dcc.Dropdown(
+                id='xaxis-column',
+                options=[{'label': i, 'value': i} for i in available_indicators],
+                value='Fertility rate, total (births per woman)'
+            ),
             dcc.RadioItems(
-                id='estimation-type',
-                options=[{'label': i, 'value': i} for i in estimations],
-                value='midpoint',
+                id='xaxis-type',
+                options=[{'label': i, 'value': i} for i in ['Linear', 'Log']],
+                value='Linear',
                 labelStyle={'display': 'inline-block'}
-            )],
-            style={'width': '48%', 'display': 'inline-block', 'margin-left': '20px'}
-        )],
-        style={'width': '40%', 'margin':'auto', 'margin-top':'40px'}
-    ),
+            )
+        ],
+        style={'width': '48%', 'display': 'inline-block'}),
+
+        html.Div([
+            dcc.Dropdown(
+                id='yaxis-column',
+                options=[{'label': i, 'value': i} for i in available_indicators],
+                value='Life expectancy at birth, total (years)'
+            ),
+            dcc.RadioItems(
+                id='yaxis-type',
+                options=[{'label': i, 'value': i} for i in ['Linear', 'Log']],
+                value='Linear',
+                labelStyle={'display': 'inline-block'}
+            )
+        ],style={'width': '48%', 'float': 'right', 'display': 'inline-block'})
+    ]),
+
+    dcc.Graph(id='indicator-graphic'),
+
+    dcc.Slider(
+        id='year--slider',
+        min=df['Year'].min(),
+        max=df['Year'].max(),
+        value=df['Year'].max(),
+        marks={str(year): str(year) for year in df['Year'].unique()},
+        step=None
+    )
 ])
 
-
-""" INTERACTIONS """
 @app.callback(
-    [Output('map-graph', 'figure'),
-    Output('scatter-graph', 'figure')],
-    [Input('year-slider', 'value'),
-     Input('estimation-type', 'value')])
-def update_figure(selected_year, estimation_type):
-    print(selected_year)
-    percent_to_show = estimation_type + "-percent-" + str(selected_year)
-    print(percent_to_show)
-    df['percent'] = df[percent_to_show]
+    Output('indicator-graphic', 'figure'),
+    [Input('xaxis-column', 'value'),
+     Input('yaxis-column', 'value'),
+     Input('xaxis-type', 'value'),
+     Input('yaxis-type', 'value'),
+     Input('year--slider', 'value')])
+def update_graph(xaxis_column_name, yaxis_column_name,
+                 xaxis_type, yaxis_type,
+                 year_value):
+    dff = df[df['Year'] == year_value]
 
-    fig_map = go.Figure(data=go.Choropleth(
-            locations = df['ISO code'],
-            z = df['percent']*100,
-            text = df['Country'],
-            colorscale = 'Blues',
-            autocolorscale=False,
-            reversescale=False,
-            marker_line_color='darkgray',
-            marker_line_width=0.5,
-            colorbar_tickprefix = '',
-            colorbar_title = '% mismanaged plastic',
-        ), layout = dict(
-            title_text='Mismanaged plastic proportion by country',
-            geo=dict(
-                showframe=False,
-                showcoastlines=False,
-                projection_type='equirectangular'
-                ),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            margin={"r":0,"t":40,"l":0,"b":0}, 
-            height= 350,
+    return {
+        'data': [dict(
+            x=dff[dff['Indicator Name'] == xaxis_column_name]['Value'],
+            y=dff[dff['Indicator Name'] == yaxis_column_name]['Value'],
+            text=dff[dff['Indicator Name'] == yaxis_column_name]['Country Name'],
+            mode='markers',
+            marker={
+                'size': 15,
+                'opacity': 0.5,
+                'line': {'width': 0.5, 'color': 'white'}
+            }
+        )],
+        'layout': dict(
+            xaxis={
+                'title': xaxis_column_name,
+                'type': 'linear' if xaxis_type == 'Linear' else 'log'
+            },
+            yaxis={
+                'title': yaxis_column_name,
+                'type': 'linear' if yaxis_type == 'Linear' else 'log'
+            },
+            margin={'l': 40, 'b': 40, 't': 10, 'r': 0},
+            hovermode='closest'
         )
-    )
-
-    fig_scatter = (
-        go.Figure(data=go.Scatter(
-            x=df["GDP - per capita"], 
-            y=df['percent']*100, 
-            mode='markers'), 
-            layout = dict(
-                title_text='Mismanaged plastic proportion and statistics',
-                xaxis_title='GDP - per capita',
-                yaxis_title='% mismanaged plastic',
-                geo=dict(
-                    showframe=False,
-                    showcoastlines=False,
-                    projection_type='equirectangular'
-                    ),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                margin={"r":0,"t":40,"l":0,"b":0}, 
-                height= 350,
-            )
-        )
-    )
-
-
-    return fig_map, fig_scatter
-
-
-
-
-
-
+    }
 
 
 if __name__ == '__main__':
@@ -143,7 +103,10 @@ if __name__ == '__main__':
 
 
 
-"""import dash
+
+
+
+import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
@@ -203,6 +166,50 @@ def update_figure(selected_year):
         )
     }
 
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
+
+
+
+"""import pandas as pd
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+import plotly.graph_objects as go
+
+
+df = pd.read_excel("./Data/igr204-data.xlsx")
+print(df.shape)
+df["midpoint-percent-2015"] = df['midpoint-mpw-2015'] / df['midpoint-total-pw-2015']
+
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+
+app.layout = html.Div(children=[
+    html.H1(children='Investment in the fight against ocean pollution'),
+
+    html.Div(children='''
+        In which countries should we invest to limit plastic pollution of the oceans?
+    '''),
+
+    dcc.Graph(
+        id='example-graph',
+        figure=go.Figure(data=go.Choropleth(
+            locations = df['ISO code'],
+            z = df['midpoint-percent-2015']*100,
+            text = df['Country'],
+            colorscale = 'Blues',
+            autocolorscale=False,
+            reversescale=False,
+            marker_line_color='darkgray',
+            marker_line_width=0.5,
+            colorbar_tickprefix = '',
+            colorbar_title = '% mismanaged plastic',
+        ))
+    )
+])
 
 if __name__ == '__main__':
     app.run_server(debug=True)"""
