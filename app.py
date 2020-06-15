@@ -127,7 +127,6 @@ def update_figure(selected_year, estimation_type):
         )
     )
 
-
     return fig_map, fig_scatter
 
 
