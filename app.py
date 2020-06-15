@@ -1,3 +1,47 @@
+import pandas as pd
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+import plotly.graph_objects as go
+
+
+df = pd.read_excel("./Data/igr204-data.xlsx")
+print(df.shape)
+df["midpoint-percent-2015"] = df['midpoint-mpw-2015'] / df['midpoint-total-pw-2015']
+
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+
+app.layout = html.Div(children=[
+    html.H1(children='Investment in the fight against ocean pollution'),
+
+    html.Div(children='''
+        In which countries should we invest to limit plastic pollution of the oceans?
+    '''),
+
+    dcc.Graph(
+        id='example-graph',
+        figure=go.Figure(data=go.Choropleth(
+            locations = df['ISO code'],
+            z = df['midpoint-percent-2015']*100,
+            text = df['Country'],
+            colorscale = 'Blues',
+            autocolorscale=False,
+            reversescale=False,
+            marker_line_color='darkgray',
+            marker_line_width=0.5,
+            colorbar_tickprefix = '',
+            colorbar_title = '% mismanaged plastic',
+        ))
+    )
+])
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
+
+
+
 """import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -28,10 +72,12 @@ app.layout = html.Div(children=[
 ])
 
 if __name__ == '__main__':
-    app.run_server(debug=True)"""
+    app.run_server(debug=True)
+"""
 
 
-import dash
+
+"""import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
@@ -76,4 +122,4 @@ app.layout = html.Div([
 ])
 
 if __name__ == '__main__':
-    app.run_server()
+    app.run_server()"""
