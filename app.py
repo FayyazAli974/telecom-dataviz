@@ -8,6 +8,7 @@ from dash.dependencies import Input, Output
 # Constants
 estimations = ["lower", "midpoint", "higher"]
 years = [2015, 2020, 2040, 2060]
+previous_click = None
 
 """ DATA LOADING """
 # Load and prepare data
@@ -18,7 +19,6 @@ for estimation in estimations:
     for year in years[1:]:
         df[estimation + "-percent-" + str(year)] = df[estimation + "-mpw-scenarioB-" + str(year)] / df[estimation + "-total-pw-" + str(year)]
 df['percent'] = df["midpoint-percent-2015"]
-
 
 
 """ LAYOUT """
@@ -73,12 +73,103 @@ app.layout = html.Div(children=[
     [Output('map-graph', 'figure'),
     Output('scatter-graph', 'figure')],
     [Input('year-slider', 'value'),
-     Input('estimation-type', 'value')])
-def update_figure(selected_year, estimation_type):
+     Input('estimation-type', 'value'),
+     Input('map-graph', 'clickData'),
+     Input('map-graph', 'selectedData'),
+     Input('scatter-graph', 'clickData'),
+     Input('scatter-graph', 'selectedData')
+     ])
+def update_figure(selected_year, estimation_type, click_country, selected_country, click_country2, selected_country2):
+    df_filtered = df.copy()
+    selected_points = df_filtered.index
+    #print("-------------------------------------------")
+    print("Trigger:", dash.callback_context.triggered)
+    if dash.callback_context.triggered and dash.callback_context.triggered[0]["value"] and isinstance(dash.callback_context.triggered[0]["value"], dict):
+        selections = dash.callback_context.triggered[0]["value"]
+        if selections["points"]:
+            indexes = []
+            for selection in selections["points"]:
+                indexes.append(selection["pointIndex"])
+            print(indexes)
+            selected_points = df[df.index.isin(indexes)].index
+
+
+
+    """if dash.callback_context.triggered and dash.callback_context.triggered[0]["value"] and isinstance(dash.callback_context.triggered[0]["value"], dict):
+        selections = dash.callback_context.triggered[0]["value"]
+        if selections["points"]:
+            indexes = []
+            for selection in selections["points"]:
+                indexes.append(selection["pointIndex"])
+            print(indexes)
+            selected_points = df[df.index.isin(indexes)].index"""
+
+    print(selected_points)   
+
     print(selected_year)
     percent_to_show = estimation_type + "-percent-" + str(selected_year)
     print(percent_to_show)
-    df['percent'] = df[percent_to_show]
+    df_filtered['percent'] = df_filtered[percent_to_show]
+
+    fig_map = go.Figure(data=go.Choropleth(
+            selectedpoints=selected_points,
+            locations = df_filtered['ISO code'],
+            z = df_filtered['percent']*100,
+            text = df_filtered['Country'],
+            colorscale = 'Blues',
+            autocolorscale=False,
+            reversescale=False,
+            marker_line_color='darkgray',
+            marker_line_width=0.5,
+            colorbar_tickprefix = '',
+            colorbar_title = '% mismanaged plastic',
+        ), layout = dict(
+            title_text='Mismanaged plastic proportion by country',
+            geo=dict(
+                showframe=False,
+                showcoastlines=False,
+                projection_type='equirectangular'
+                ),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            margin={"r":0,"t":40,"l":0,"b":0}, 
+            height= 350,
+        )
+    )
+
+    fig_scatter = (
+        go.Figure(data=go.Scatter(
+            selectedpoints=selected_points,
+            x=df_filtered["GDP - per capita"], 
+            y=df_filtered['percent']*100, 
+            mode='markers'), 
+            layout = dict(
+                title_text='Mismanaged plastic proportion and statistics',
+                xaxis_title='GDP - per capita',
+                yaxis_title='% mismanaged plastic',
+                geo=dict(
+                    showframe=False,
+                    showcoastlines=False,
+                    projection_type='equirectangular'
+                    ),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                margin={"r":0,"t":40,"l":0,"b":0}, 
+                height= 350,
+            )
+        )
+    )
+
+    return fig_map, fig_scatter
+
+
+"""
+@app.callback(
+    [Output('map-graph', 'figure'),
+    Output('scatter-graph', 'figure')],
+    [Input('map-graph', 'clickData')])
+def update_country(selected_country):
+    print(selected_country)
 
     fig_map = go.Figure(data=go.Choropleth(
             locations = df['ISO code'],
@@ -129,12 +220,7 @@ def update_figure(selected_year, estimation_type):
 
     return fig_map, fig_scatter
 
-
-
-
-
-
-
+"""
 
 if __name__ == '__main__':
     app.run_server(debug=True)
