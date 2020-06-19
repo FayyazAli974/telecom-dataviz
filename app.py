@@ -9,6 +9,7 @@ from dash.dependencies import Input, Output
 estimations = ["lower", "midpoint", "higher"]
 years = [2015, 2020, 2040, 2060]
 previous_click = None
+continents = ["All continents","Asia","Africa", "Europe", "North America","South America", "Oceania" ]
 
 """ DATA LOADING """
 # Load and prepare data
@@ -52,33 +53,170 @@ app.layout = html.Div(children=[
                     labelStyle={'display': 'inline-block'}
                 )],
                 style={'width': '80%', 'display': 'inline-block', 'margin-left': '10px', "margin-top": "20px"}
-            )],
-            style={'width': '22%', 'margin-top': '40px', 'vertical-align':'top', 'display': 'inline-block'}
+            ),
+            html.Div([
+                dcc.RadioItems(
+                    id='continent-type',
+                    options=[{'label': i, 'value': i} for i in continents],
+                    value='midpoint',
+                    labelStyle={'display': 'inline-block'}
+                )],
+                style={'width': '48%', 'display': 'inline-block', 'margin-left': '20px'}
+            )
+            ],
+            style={'width': '22%', 'margin-top': '20px', 'vertical-align':'top', 'display': 'inline-block'}
         ),
         html.Div([
             html.Div([
                 dcc.Graph(
                     id='map-graph',
                 )],
-                style={'width': '45%', 'height': '400px', 'margin-top': '40px', 'display': 'inline-block'}
+                style={'width': '100%', 'height': '370px', 'margin-top': '0px', 'display': 'inline-block'}
             ),
             html.Div([
                 dcc.Graph(
                     id='scatter-graph',
                     figure=go.Figure()
                 )],
-                style={'width': '45%', 'height': '400px', 'margin-top': '40px', 'margin-left': '5%', 'display': 'inline-block'}
-            )],
-            style={'width': '75%', 'margin':'auto', 'display': 'inline-block'}
+                style={'width': '45%', 'height': '400px', 'margin-top': '0px', 'margin-left': '5%', 'display': 'inline-block'}
+            ),
+            html.Div([
+                dcc.Graph(
+                    id='line-graph',
+                    figure=go.Figure()
+                )],
+                style={'width': '45%', 'height': '400px', 'margin-top': '0px', 'margin-left': '5%', 'display': 'inline-block'}
+            )
+            ],
+            style={'width': '75%', 'margin':'auto', 'margin-top': '20px', 'display': 'inline-block'}
         )
     ])
 ])
+
+def compute_graph3(df, country):
+    print(country)
+    if len(country) > 0:
+        df_pays = df[df['Country'].isin(country)]
+    else:
+        df_pays = df
+    axe_temp = [2015, 2020, 2040, 2060]
+    axe_temp_rev = axe_temp[::-1]
+
+    Scenario_A = [df_pays['midpoint-mpw-2015'].to_list()[0], df_pays['midpoint-mpw-scenarioA-2020'].to_list()[0], 
+                df_pays['midpoint-mpw-scenarioA-2040'].to_list()[0], df_pays['midpoint-mpw-scenarioA-2060'].to_list()[0]]
+    Scenario_A_Higher = [df_pays['midpoint-mpw-2015'].to_list()[0], df_pays['higher-mpw-scenarioA-2020'].to_list()[0], 
+                df_pays['higher-mpw-scenarioA-2040'].to_list()[0], df_pays['higher-mpw-scenarioA-2060'].to_list()[0]]
+    Scenario_A_Lower = [df_pays['midpoint-mpw-2015'].to_list()[0], df_pays['lower-mpw-scenarioA-2020'].to_list()[0], 
+                df_pays['lower-mpw-scenarioA-2040'].to_list()[0], df_pays['lower-mpw-scenarioA-2060'].to_list()[0]]
+    Scenario_A_Lower_rev = Scenario_A_Lower[::-1]
+    Scenario_B = [df_pays['midpoint-mpw-2015'].to_list()[0], df_pays['midpoint-mpw-scenarioB-2020'].to_list()[0], 
+                df_pays['midpoint-mpw-scenarioB-2040'].to_list()[0], df_pays['midpoint-mpw-scenarioB-2060'].to_list()[0]]
+    Scenario_B_Higher = [df_pays['midpoint-mpw-2015'].to_list()[0], df_pays['higher-mpw-scenarioB-2020'].to_list()[0], 
+                df_pays['higher-mpw-scenarioB-2040'].to_list()[0], df_pays['higher-mpw-scenarioB-2060'].to_list()[0]]
+    Scenario_B_Lower = [df_pays['midpoint-mpw-2015'].to_list()[0], df_pays['lower-mpw-scenarioB-2020'].to_list()[0], 
+                df_pays['lower-mpw-scenarioB-2040'].to_list()[0], df_pays['lower-mpw-scenarioB-2060'].to_list()[0]]
+    Scenario_B_Lower_rev = Scenario_B_Lower[::-1]
+    Scenario_C = [df_pays['midpoint-mpw-2015'].to_list()[0], df_pays['midpoint-mpw-scenarioC-2020'].to_list()[0], 
+                df_pays['midpoint-mpw-scenarioC-2040'].to_list()[0], df_pays['midpoint-mpw-scenarioC-2060'].to_list()[0]]
+    Scenario_C_Higher = [df_pays['midpoint-mpw-2015'].to_list()[0], df_pays['higher-mpw-scenarioC-2020'].to_list()[0], 
+                df_pays['higher-mpw-scenarioC-2040'].to_list()[0], df_pays['higher-mpw-scenarioC-2060'].to_list()[0]]
+    Scenario_C_Lower = [df_pays['midpoint-mpw-2015'].to_list()[0], df_pays['lower-mpw-scenarioC-2020'].to_list()[0], 
+                df_pays['lower-mpw-scenarioC-2040'].to_list()[0], df_pays['lower-mpw-scenarioC-2060'].to_list()[0]]
+    Scenario_C_Lower_rev = Scenario_C_Lower[::-1]
+
+
+    traceA = go.Scatter(
+        x=axe_temp+axe_temp_rev,
+        y=Scenario_A_Higher+Scenario_A_Lower_rev,
+        fill='tozerox',
+        fillcolor='rgba(0,100,80,0.2)',
+        line=dict(color='rgba(255,255,255,0)'),
+        showlegend=False,
+        name='Scenario A',
+    )
+    traceAs = go.Scatter(
+        x=axe_temp,
+        y=Scenario_A,
+        line=dict(color='rgb(0,100,80)'),
+        mode='lines',
+        name='Scenario A',
+    )
+    traceB = go.Scatter(
+        x=axe_temp+axe_temp_rev,
+        y=Scenario_B_Higher+Scenario_B_Lower_rev,
+        fill='tozerox',
+        fillcolor='rgba(0,176,246,0.2)',
+        line=dict(color='rgba(255,255,255,0)'),
+        showlegend=False,
+        name='Scenario B',
+    )
+    traceBs = go.Scatter(
+        x=axe_temp,
+        y=Scenario_B,
+        line=dict(color='rgb(0,176,246)'),
+        mode='lines',
+        name='Scenario B',
+    )
+    traceC = go.Scatter(
+        x=axe_temp+axe_temp_rev,
+        y=Scenario_C_Higher+Scenario_C_Lower_rev,
+        fill='tozerox',
+        fillcolor='rgba(231,107,243,0.2)',
+        line=dict(color='rgba(255,255,255,0)'),
+        showlegend=False,
+        name='Scenario C',
+    )
+    traceCs = go.Scatter(
+        x=axe_temp,
+        y=Scenario_C,
+        line=dict(color='rgb(231,107,243)'),
+        mode='lines',
+        name='Scenario C',
+    )
+    data_line_graph = [traceA,traceAs,traceB,traceBs,traceC,traceCs]
+    layout_line_graph = go.Layout(
+        paper_bgcolor='rgb(255,255,255)',
+        plot_bgcolor='rgb(229,229,229)',
+        title={
+            'text': 'MPW Evolution for '+ ", ".join(country),
+            'y':0.9,
+            'x':0.5,
+            'xanchor': 'center',
+            'yanchor': 'top'},
+        xaxis_title="Year",
+        yaxis_title="MPW (kg)",
+        xaxis=dict(
+            gridcolor='rgb(255,255,255)',
+            #range=[2015,2060],
+            #x = axe_temp,
+            type='date',
+            showgrid=True,
+            showline=False,
+            showticklabels=True,
+            tickcolor='rgb(127,127,127)',
+            ticks='outside',
+            zeroline=False
+        ),
+        yaxis=dict(
+            gridcolor='rgb(255,255,255)',
+            showgrid=True,
+            showline=False,
+            showticklabels=True,
+            tickcolor='rgb(127,127,127)',
+            ticks='outside',
+            zeroline=False
+        ),
+    )
+
+    return data_line_graph, layout_line_graph
+
 
 
 """ INTERACTIONS """
 @app.callback(
     [Output('map-graph', 'figure'),
-    Output('scatter-graph', 'figure')],
+    Output('scatter-graph', 'figure'),
+    Output('line-graph', 'figure')],
     [Input('year-slider', 'value'),
      Input('estimation-type', 'value'),
      Input('map-graph', 'clickData'),
@@ -89,31 +227,29 @@ app.layout = html.Div(children=[
 def update_figure(selected_year, estimation_type, click_country, selected_country, click_country2, selected_country2):
     df_filtered = df.copy()
     selected_points = df_filtered.index
+    indexes = countries = []
     #print("-------------------------------------------")
-    print("Trigger:", dash.callback_context.triggered)
+    #print("Trigger:", dash.callback_context.triggered)
     if dash.callback_context.triggered and dash.callback_context.triggered[0]["value"] and isinstance(dash.callback_context.triggered[0]["value"], dict):
         selections = dash.callback_context.triggered[0]["value"]
+        
         if selections["points"]:
             indexes = []
+            countries = []
             for selection in selections["points"]:
+                print(selection)
                 indexes.append(selection["pointIndex"])
-            print(indexes)
+                if selection["text"]:
+                    countries.append(selection["text"])
+                    
+            #print(indexes)
             selected_points = df[df.index.isin(indexes)].index
 
-    """if dash.callback_context.triggered and dash.callback_context.triggered[0]["value"] and isinstance(dash.callback_context.triggered[0]["value"], dict):
-        selections = dash.callback_context.triggered[0]["value"]
-        if selections["points"]:
-            indexes = []
-            for selection in selections["points"]:
-                indexes.append(selection["pointIndex"])
-            print(indexes)
-            selected_points = df[df.index.isin(indexes)].index"""
-
-    print(selected_points)   
-
-    print(selected_year)
+    print(countries)
+    #print(selected_points)   
+    #print(selected_year)
     percent_to_show = estimation_type + "-percent-" + str(selected_year)
-    print(percent_to_show)
+    #print(percent_to_show)
     df_filtered['percent'] = df_filtered[percent_to_show]
 
     fig_map = go.Figure(data=go.Choropleth(
@@ -147,7 +283,8 @@ def update_figure(selected_year, estimation_type, click_country, selected_countr
             selectedpoints=selected_points,
             x=df_filtered["GDP - per capita"], 
             y=df_filtered['percent']*100, 
-            mode='markers'), 
+            mode='markers',
+            text=df['Country']),
             layout = dict(
                 title_text='Mismanaged plastic proportion and statistics',
                 xaxis_title='GDP - per capita',
@@ -164,8 +301,13 @@ def update_figure(selected_year, estimation_type, click_country, selected_countr
             )
         )
     )
+    data_line_graph, layout_line_graph = compute_graph3(df, countries)
+    fig_line = (
+        go.Figure(data=data_line_graph, layout=layout_line_graph
+        )
+    )
 
-    return fig_map, fig_scatter
+    return fig_map, fig_scatter, fig_line
 
 
 """
