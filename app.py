@@ -30,41 +30,48 @@ app.layout = html.Div(children=[
     html.Div(children='''In which countries should we invest to limit plastic pollution of the oceans?'''),
 
     html.Div([
-        dcc.Graph(
-            id='map-graph',
-        )],
-        style={'width': '45%', 'height': '400px', 'margin-top': '40px', 'display': 'inline-block'}
-    ),
-    html.Div([
-        dcc.Graph(
-            id='scatter-graph',
-            figure=go.Figure()
-        )],
-        style={'width': '45%', 'height': '400px', 'margin-top': '40px', 'margin-left': '5%', 'display': 'inline-block'}
-    ),
-    html.Div([
         html.Div([
-            dcc.Slider(
-                id='year-slider',
-                min=2015,
-                max=2060,
-                value=2015,
-                marks={str(year): str(year) for year in years},
-                step=None
+            html.Div([
+                html.P('Year', style={"font-weight":"bold"}),
+                dcc.Slider(
+                    id='year-slider',
+                    min=2015,
+                    max=2060,
+                    value=2015,
+                    marks={str(year): str(year) for year in years},
+                    step=None
+                )],
+                style={'width': '80%', 'display': 'inline-block', 'margin-left': '10px'}
+            ),
+            html.Div([
+                html.P('Estimation', style={"font-weight":"bold"}),
+                dcc.RadioItems(
+                    id='estimation-type',
+                    options=[{'label': i, 'value': i} for i in estimations],
+                    value='midpoint',
+                    labelStyle={'display': 'inline-block'}
+                )],
+                style={'width': '80%', 'display': 'inline-block', 'margin-left': '10px', "margin-top": "20px"}
             )],
-            style={'width': '48%', 'display': 'inline-block'}
+            style={'width': '22%', 'margin-top': '40px', 'vertical-align':'top', 'display': 'inline-block'}
         ),
         html.Div([
-            dcc.RadioItems(
-                id='estimation-type',
-                options=[{'label': i, 'value': i} for i in estimations],
-                value='midpoint',
-                labelStyle={'display': 'inline-block'}
+            html.Div([
+                dcc.Graph(
+                    id='map-graph',
+                )],
+                style={'width': '45%', 'height': '400px', 'margin-top': '40px', 'display': 'inline-block'}
+            ),
+            html.Div([
+                dcc.Graph(
+                    id='scatter-graph',
+                    figure=go.Figure()
+                )],
+                style={'width': '45%', 'height': '400px', 'margin-top': '40px', 'margin-left': '5%', 'display': 'inline-block'}
             )],
-            style={'width': '48%', 'display': 'inline-block', 'margin-left': '20px'}
-        )],
-        style={'width': '40%', 'margin':'auto', 'margin-top':'40px'}
-    ),
+            style={'width': '75%', 'margin':'auto', 'display': 'inline-block'}
+        )
+    ])
 ])
 
 
@@ -92,8 +99,6 @@ def update_figure(selected_year, estimation_type, click_country, selected_countr
                 indexes.append(selection["pointIndex"])
             print(indexes)
             selected_points = df[df.index.isin(indexes)].index
-
-
 
     """if dash.callback_context.triggered and dash.callback_context.triggered[0]["value"] and isinstance(dash.callback_context.triggered[0]["value"], dict):
         selections = dash.callback_context.triggered[0]["value"]
