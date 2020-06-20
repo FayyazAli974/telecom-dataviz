@@ -9,8 +9,8 @@ from dash.dependencies import Input, Output
 estimations = ["lower", "midpoint", "higher"]
 years = [2015, 2020, 2040, 2060]
 previous_click = None
-continents = ["All continents","Asia","Africa", "Europe", "North America","South America", "Oceania"]
-statistics = ["population", "GDP per capita", "% recycling", "total MSP (Municipal Solid Waste) per capita"]
+continents = ["All continents", "Asia", "Africa", "Europe", "Northern America", "Latin America and Caribbean", "Oceania"]
+statistics = ["Population", "GDP per capita", "% recycling", "Total MSW (Municipal Solid Waste) per capita"]
 
 """ DATA LOADING """
 # Load and prepare data
@@ -28,7 +28,7 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 app.layout = html.Div(children=[
-    html.H1(children='Investment in the fight against ocean pollution'),
+    html.H1(children='Investment in the fight against plastic pollution'),
     html.Div(children='''In which countries should we invest to limit plastic pollution of the oceans?'''),
 
     html.Div([
@@ -60,7 +60,17 @@ app.layout = html.Div(children=[
                 dcc.RadioItems(
                     id='continent-type',
                     options=[{'label': i, 'value': i} for i in continents],
-                    value='midpoint',
+                    value='All continents',
+                    labelStyle={'display': 'block'}
+                )],
+                style={'width': '80%', 'display': 'inline-block', 'margin-left': '10px', "margin-top": "20px"}
+            ),
+            html.Div([
+                html.P('Country statistics', style={"font-weight":"bold"}),
+                dcc.RadioItems(
+                    id='stats-type',
+                    options=[{'label': i, 'value': i} for i in statistics],
+                    value='Population',
                     labelStyle={'display': 'block'}
                 )],
                 style={'width': '80%', 'display': 'inline-block', 'margin-left': '10px', "margin-top": "20px"}
@@ -221,15 +231,18 @@ def compute_graph3(df, country):
     Output('line-graph', 'figure')],
     [Input('year-slider', 'value'),
      Input('estimation-type', 'value'),
+     Input('continent-type', 'value'),
+     Input('stats-type', 'value'),
      Input('map-graph', 'clickData'),
      Input('map-graph', 'selectedData'),
      Input('scatter-graph', 'clickData'),
      Input('scatter-graph', 'selectedData')
      ])
-def update_figure(selected_year, estimation_type, click_country, selected_country, click_country2, selected_country2):
+def update_figure(selected_year, estimation_type, continent_type, stats_type, click_country, selected_country, click_country2, selected_country2):
     df_filtered = df.copy()
     selected_points = df_filtered.index
     indexes = countries = []
+
     #print("-------------------------------------------")
     #print("Trigger:", dash.callback_context.triggered)
     if dash.callback_context.triggered and dash.callback_context.triggered[0]["value"] and isinstance(dash.callback_context.triggered[0]["value"], dict):
@@ -243,9 +256,24 @@ def update_figure(selected_year, estimation_type, click_country, selected_countr
                 indexes.append(selection["pointIndex"])
                 if selection["text"]:
                     countries.append(selection["text"])
-                    
-            #print(indexes)
             selected_points = df[df.index.isin(indexes)].index
+    
+    if continent_type:
+        if continent_type == "All continents":
+            selected_points = df.index
+        else:
+            selected_points = df[df["Continent"] == continent_type].index
+
+    # "Population", "GDP per capita", "% recycling", "Total MSP (Municipal Solid Waste) per capita"
+    if stats_type:
+        if stats_type == "Population":
+            col_scatter = df_filtered[str(selected_year) + " Population (x1000 ppl)"]
+        elif stats_type == "GDP per capita":
+            col_scatter = df_filtered[str(selected_year) + " Per Capita GDP (2016 USD)"]
+        elif stats_type == "% recycling":
+            col_scatter = 1 - df_filtered["2015 median Mismanaged MSW fraction (%)"]
+        elif stats_type == "Total MSW (Municipal Solid Waste) per capita":
+            col_scatter = df_filtered["2015 median Per Capita MSW (kg.y-1)"]
 
     print(countries)
     #print(selected_points)   
@@ -283,13 +311,13 @@ def update_figure(selected_year, estimation_type, click_country, selected_countr
     fig_scatter = (
         go.Figure(data=go.Scatter(
             selectedpoints=selected_points,
-            x=df_filtered["GDP - per capita"], 
+            x=col_scatter, 
             y=df_filtered['percent']*100, 
             mode='markers',
             text=df['Country']),
             layout = dict(
                 title_text='Mismanaged plastic proportion and statistics',
-                xaxis_title='GDP - per capita',
+                xaxis_title=stats_type,
                 yaxis_title='% mismanaged plastic',
                 geo=dict(
                     showframe=False,
@@ -303,7 +331,9 @@ def update_figure(selected_year, estimation_type, click_country, selected_countr
             )
         )
     )
-    data_line_graph, layout_line_graph = compute_graph3(df, countries)
+
+    print(len(df_filtered.index), len(selected_points))
+    data_line_graph, layout_line_graph = compute_graph3(df_filtered[df_filtered.index.isin(selected_points)], countries)
     fig_line = (
         go.Figure(data=data_line_graph, layout=layout_line_graph
         )
