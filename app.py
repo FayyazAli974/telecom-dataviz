@@ -9,7 +9,8 @@ from dash.dependencies import Input, Output
 estimations = ["lower", "midpoint", "higher"]
 years = [2015, 2020, 2040, 2060]
 previous_click = None
-continents = ["All continents","Asia","Africa", "Europe", "North America","South America", "Oceania" ]
+continents = ["All continents","Asia","Africa", "Europe", "North America","South America", "Oceania"]
+statistics = ["population", "GDP per capita", "% recycling", "total MSP (Municipal Solid Waste) per capita"]
 
 """ DATA LOADING """
 # Load and prepare data
@@ -55,13 +56,14 @@ app.layout = html.Div(children=[
                 style={'width': '80%', 'display': 'inline-block', 'margin-left': '10px', "margin-top": "20px"}
             ),
             html.Div([
+                html.P('Places', style={"font-weight":"bold"}),
                 dcc.RadioItems(
                     id='continent-type',
                     options=[{'label': i, 'value': i} for i in continents],
                     value='midpoint',
-                    labelStyle={'display': 'inline-block'}
+                    labelStyle={'display': 'block'}
                 )],
-                style={'width': '48%', 'display': 'inline-block', 'margin-left': '20px'}
+                style={'width': '80%', 'display': 'inline-block', 'margin-left': '10px', "margin-top": "20px"}
             )
             ],
             style={'width': '22%', 'margin-top': '20px', 'vertical-align':'top', 'display': 'inline-block'}
