@@ -9,6 +9,7 @@ from compute_graph import compute_graph1, compute_graph2, compute_graph3
 
 # Constants
 estimations = ["lower", "midpoint", "higher"]
+scenarios = ["Scenario A", "Scenario B", "Scenario C"]
 years = [2015, 2020, 2040, 2060]
 previous_click = None
 continents = ["All continents", "Asia", "Africa", "Europe", "Northern America", "Latin America and Caribbean", "Oceania"]
@@ -20,10 +21,13 @@ statistics = ["Population", "GDP per capita", "% recycling", "Total MSW (Municip
 df = pd.read_excel("./Data/igr204-data.xlsx")
 for estimation in estimations:
     df[estimation + "-percent-2015"] = df[estimation + "-mpw-2015"] / df[estimation + "-total-pw-2015"]
-    for year in years[1:]:
-        df[estimation + "-percent-" + str(year)] = df[estimation + "-mpw-scenarioB-" + str(year)] / df[estimation + "-total-pw-" + str(year)]
+    for scenario in scenarios:
+        for year in years[1:]:
+            df[estimation + "-scenario" + scenario[-1] + "-percent-" + str(year)] = df[estimation + "-mpw-scenario" + scenario[-1] + "-" + str(year)] / df[estimation + "-total-pw-" + str(year)]
+            
 df['percent'] = df["midpoint-percent-2015"]
 
+print(df.columns)
 
 """ LAYOUT """
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
@@ -51,11 +55,11 @@ app.layout = html.Div(children=[
                 style={'width': '80%', 'display': 'inline-block', 'margin-left': '10px'}
             ),
             html.Div([
-                html.P('Estimation', style={"font-weight":"bold"}),
+                html.P('Scenarios', style={"font-weight":"bold"}),
                 dcc.RadioItems(
-                    id='estimation-type',
-                    options=[{'label': i, 'value': i} for i in estimations],
-                    value='midpoint',
+                    id='scenario-type',
+                    options=[{'label': i, 'value': i} for i in scenarios],
+                    value='Scenario B',
                     labelStyle={'display': 'inline-block'}
                 )],
                 style={'width': '80%', 'display': 'inline-block', 'margin-left': '10px', "margin-top": "20px"}
@@ -128,7 +132,7 @@ app.layout = html.Div(children=[
     Output('scatter-graph', 'figure'),
     Output('line-graph', 'figure')],
     [Input('year-slider', 'value'),
-     Input('estimation-type', 'value'),
+     Input('scenario-type', 'value'),
      Input('continent-type', 'value'),
      Input('stats-type', 'value'),
      Input('map-graph', 'clickData'),
@@ -136,7 +140,7 @@ app.layout = html.Div(children=[
      Input('scatter-graph', 'clickData'),
      Input('scatter-graph', 'selectedData')
      ])
-def update_figure(selected_year, estimation_type, continent_type, stats_type, click_country, selected_country, click_country2, selected_country2):
+def update_figure(selected_year, scenario_type, continent_type, stats_type, click_country, selected_country, click_country2, selected_country2):
     df_filtered = df.copy()
     selected_points = df_filtered.index
     indexes = countries = []
@@ -178,8 +182,13 @@ def update_figure(selected_year, estimation_type, continent_type, stats_type, cl
 
     
     # data to show
-    percent_to_show = estimation_type + "-percent-" + str(selected_year)
+    if selected_year == 2015:
+        percent_to_show = "midpoint-percent-" + str(selected_year)
+    else:
+        percent_to_show = "midpoint-scenario" + scenario_type[-1] + "-percent-" + str(selected_year)
     df_filtered['percent'] = df_filtered[percent_to_show]
+
+    print(percent_to_show)
 
     # hover
     df_filtered["hover"] = df_filtered.apply(lambda x: (x["Country"], round(x['percent']*100,2), x[str(selected_year) + " Population (x1000 ppl)"]/1000, \
